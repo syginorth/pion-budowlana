@@ -22,14 +22,6 @@
     addEventListener('resize', light);
   }
 
-  // Work films: open on the drawing, neighbours peeking.
-  document.querySelectorAll('[data-film]').forEach((film) => {
-    [...film.children].forEach((el, i) => el.style.setProperty('--n', i));
-    const s = film.querySelector('[data-start]');
-    const go = () => { film.scrollLeft = s.offsetLeft - (film.clientWidth - s.offsetWidth) / 2; };
-    go(); addEventListener('load', go);
-  });
-
   // Moments row: buttons, progress bar, drag with the mouse.
   const row = document.querySelector('[data-moments]');
   if (row) {
@@ -41,7 +33,7 @@
       bar.style.width = (max <= 0 ? 100 : Math.max(8, seen * 100)) + '%';
     };
     row.addEventListener('scroll', update, { passive: true }); addEventListener('resize', update); update();
-    const step = () => row.children[0].getBoundingClientRect().width + 32;
+    const step = () => row.children[0].getBoundingClientRect().width + parseFloat(getComputedStyle(row).columnGap || 16);
     document.querySelectorAll('[data-how]').forEach((b) => b.addEventListener('click', () => row.scrollBy({ left: step() * Number(b.dataset.how), behavior: reduce ? 'auto' : 'smooth' })));
     let down = false, x0 = 0, s0 = 0;
     row.addEventListener('pointerdown', (e) => { if (e.pointerType !== 'mouse') return; down = true; x0 = e.clientX; s0 = row.scrollLeft; row.classList.add('dragging'); });
@@ -50,7 +42,7 @@
   }
 
   // Reveal once on entry.
-  const targets = document.querySelectorAll('[data-reveal], [data-film], [data-moments]');
+  const targets = document.querySelectorAll('[data-reveal], [data-moments]');
   if ('IntersectionObserver' in window) {
     const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('is-in'); io.unobserve(e.target); } }), { rootMargin: '0px', threshold: 0 });
     targets.forEach((t) => io.observe(t));
@@ -80,6 +72,21 @@
       out('mail').href = 'mailto:biuro@pionbudowa.pl?subject=' + encodeURIComponent(`Dom ${m} m², ${s.name}`) + '&body=' + encodeURIComponent(`Dzień dobry,\n\nustawiłam / ustawiłem na Waszej stronie dom ${m} m², ${s.name}.\nSzacunek: ${zl(m * s.price)}, ${w} ${tyg(w)}.\n\nAdres działki: \nCzy mają Państwo projekt: \n`);
     };
     form.addEventListener('input', render); form.addEventListener('change', render); render();
+  }
+
+  // Call-back form: opens the visitor's mail app with the details filled in.
+  const cbForm = document.querySelector('[data-callback]');
+  if (cbForm) {
+    cbForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const f = cbForm.elements;
+      const subject = `Prośba o telefon: ${f.topic.value}`;
+      const body = `Dzień dobry,\n\nproszę o telefon w sprawie: ${f.topic.value}.\n\nImię: ${f.name.value}\nTelefon: ${f.phone.value}\n${f.when.value ? 'Najlepiej dzwonić: ' + f.when.value + '\n' : ''}`;
+      location.href = 'mailto:biuro@pionbudowa.pl?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+      let done = cbForm.querySelector('.callback-done');
+      if (!done) { done = document.createElement('p'); done.className = 'callback-done'; done.setAttribute('role', 'status'); cbForm.append(done); }
+      done.textContent = `Dziękujemy, ${f.name.value}. Otwieramy wiadomość do wysłania. Wolisz od razu? Zadzwoń: 42 630 19 94.`;
+    });
   }
 
   // Footer clock, Łódź time.
